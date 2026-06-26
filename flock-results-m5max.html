@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flock benchmark results — Apple M5 Max</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root{
+    --bg:#f7f7f4; --panel:#ffffff; --ink:#17161c; --ink2:#5b5a64; --muted:#9a99a2;
+    --line:#e6e6e2; --line2:#d8d8d3; --accent:#5b51e0; --accent-soft:#edebfd;
+    --grid:#ececea;
+    --mono:"Space Grotesk", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans:"Space Grotesk", system-ui, -apple-system, sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    line-height:1.6;font-size:16px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto;padding:0 24px}
+
+  header.top{border-bottom:1px solid var(--line2);padding:56px 0 36px}
+  .kicker{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);
+    font-weight:600;margin:0 0 14px}
+  h1{font-size:40px;font-weight:700;letter-spacing:-.02em;margin:0 0 10px;line-height:1.05}
+  h1 .sub{display:block;font-size:19px;font-weight:500;color:var(--ink2);letter-spacing:-.01em;margin-top:8px}
+  .meta{font-family:var(--mono);font-size:13px;color:var(--ink2);margin-top:18px;line-height:1.7}
+  .meta b{color:var(--ink);font-weight:600}
+
+  .heroes{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line2);
+    border:1px solid var(--line2);border-radius:14px;overflow:hidden;margin:34px 0 0}
+  .hero{background:var(--panel);padding:18px 18px 16px}
+  .hero .v{font-family:var(--mono);font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1}
+  .hero .v small{font-size:15px;font-weight:500;color:var(--ink2)}
+  .hero .l{font-size:12px;color:var(--ink2);margin-top:8px;line-height:1.35}
+
+  section.card{padding:40px 0;border-bottom:1px solid var(--line)}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--accent);
+    font-weight:600;margin:0 0 8px}
+  h2{font-size:22px;font-weight:600;letter-spacing:-.015em;margin:0 0 6px}
+  p.cap{color:var(--ink2);margin:0 0 22px;font-size:15px;max-width:64ch}
+  p.cap b{color:var(--ink);font-weight:600}
+
+  .chart-wrap{position:relative;width:100%;height:320px;background:var(--panel);
+    border:1px solid var(--line);border-radius:12px;padding:16px 14px 10px}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin:0 0 12px;font-size:12.5px;color:var(--ink2);
+    font-family:var(--mono)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+  .two{display:grid;grid-template-columns:1.55fr 1fr;gap:16px}
+
+  details{margin-top:16px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+  summary{cursor:pointer;padding:11px 16px;font-family:var(--mono);font-size:12.5px;
+    color:var(--ink2);font-weight:600;letter-spacing:.03em;list-style:none}
+  summary::-webkit-details-marker{display:none}
+  summary::before{content:"▸ ";color:var(--accent)}
+  details[open] summary::before{content:"▾ "}
+  table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:13px}
+  th,td{text-align:right;padding:7px 16px;border-top:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left;color:var(--ink2)}
+  thead th{color:var(--ink2);font-weight:600;border-top:none}
+  tbody tr:hover{background:#faf9ff}
+  .note{font-size:13.5px;color:var(--ink2);margin-top:14px;line-height:1.6}
+  .note b{color:var(--ink)}
+  .pill{display:inline-block;font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:20px;
+    background:var(--accent-soft);color:var(--accent);font-weight:600;vertical-align:middle}
+
+  footer{padding:32px 0 64px;color:var(--muted);font-family:var(--mono);font-size:12px}
+
+  @media (max-width:720px){
+    h1{font-size:30px}
+    .heroes{grid-template-columns:repeat(2,1fr)}
+    .two{grid-template-columns:1fr}
+    .chart-wrap{height:280px}
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <p class="kicker">Benchmark · Flock zk prover</p>
+    <h1>Apple M5 Max
+      <span class="sub">R1CS-over-GF(2) hashing throughput, measured</span>
+    </h1>
+    <p class="meta">
+      <b>chip</b> M5 Max — 18 cores (6 super @4.6 GHz + 12 perf @4.4 GHz, no E-cores)<br>
+      <b>perflevel0 / perflevel1</b> 6 / 12 &nbsp;·&nbsp; <b>toolchain</b> rustc 1.96.0 &nbsp;·&nbsp; <b>MT pin</b> RAYON_NUM_THREADS=12<br>
+      <b>method</b> best-of-3 after warm-up; keccak / native shown best of two passes
+    </p>
+
+    <div class="heroes">
+      <div class="hero"><div class="v">257<small> K/s</small></div><div class="l">keccak-f[1600] peak<br>(2¹⁴, 18 threads)</div></div>
+      <div class="hero"><div class="v">692<small> K/s</small></div><div class="l">BLAKE3 peak<br>(2¹⁸, 12 threads)</div></div>
+      <div class="hero"><div class="v">7.3<small>×</small></div><div class="l">MT speedup vs 1 core<br>(at scale)</div></div>
+      <div class="hero"><div class="v">~42<small>×</small></div><div class="l">faster than Plonky3<br>on keccak (12t)</div></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- 1 -->
+  <section class="card">
+    <p class="eyebrow">§ 01 · native hashing baseline</p>
+    <h2>Per-core scalar hashing: M5 Max vs M4 Max</h2>
+    <p class="cap">Single-threaded software hashing (no crypto-extension instructions), the
+      reference for Flock's single-threaded prover. <b>Per-core, the two chips are a wash</b> —
+      the M5 Max's advantage for this prover is core count and bandwidth, not single-core speed.</p>
+    <div class="legend">
+      <span><i style="background:#8a8982"></i>M4 Max (repo ref)</span>
+      <span><i style="background:#5b51e0"></i>M5 Max (measured)</span>
+    </div>
+    <div class="chart-wrap"><canvas id="c_native" role="img"
+      aria-label="Per-core throughput M4 Max vs M5 Max: keccak 7.5 vs 7.9, SHA-256 7.0 vs 6.9, BLAKE3 18.0 vs 18.1 million ops per second."></canvas></div>
+  </section>
+
+  <!-- 2 -->
+  <section class="card">
+    <p class="eyebrow">§ 02 · keccak-f[1600] throughput</p>
+    <h2>Thread scaling at the 2¹⁴ keccak point</h2>
+    <p class="cap">Flock's keccak MT optimum is 2¹⁴ (KECCAK3_KS=24576). The auto-default pins to
+      <span class="pill">6 = perflevel0</span> and leaves the chip under-used; throughput peaks at
+      12–18 threads. <b>12 is the reproducible sweet spot</b> — 18 only edges ahead on best-case runs.</p>
+    <div class="chart-wrap"><canvas id="c_kthreads" role="img"
+      aria-label="Keccak throughput by thread count: 35, 168, 200, 247, 257 thousand per second at 1, 6, 8, 12, 18 threads."></canvas></div>
+    <details><summary>data</summary>
+      <table><thead><tr><th>threads</th><th>prove_fast</th><th>throughput</th><th>speedup</th></tr></thead>
+      <tbody>
+        <tr><td>1 (ST)</td><td>698 ms</td><td>35.2 K/s</td><td>1.0×</td></tr>
+        <tr><td>6 (default)</td><td>146.5 ms</td><td>167.8 K/s</td><td>4.8×</td></tr>
+        <tr><td>8</td><td>123.1 ms</td><td>199.6 K/s</td><td>5.7×</td></tr>
+        <tr><td>12</td><td>99.5 ms</td><td>247.0 K/s</td><td>7.0×</td></tr>
+        <tr><td>18</td><td>95.6 ms</td><td>257.1 K/s</td><td>7.3×</td></tr>
+      </tbody></table>
+    </details>
+  </section>
+
+  <!-- 3 -->
+  <section class="card">
+    <p class="eyebrow">§ 03 / 04 · throughput vs batch size</p>
+    <h2>Per-hash proving throughput (12 threads)</h2>
+    <p class="cap">Throughput climbs with batch size for every hash. The proving-cost order is
+      <b>BLAKE3 (cheapest) → SHA-256 → keccak (heaviest)</b>, matching their R1CS weight.
+      BLAKE3 is still rising at 2¹⁸; keccak shown at its single 2¹⁴ profile point.</p>
+    <div class="legend">
+      <span><i style="background:#17a07a"></i>BLAKE3</span>
+      <span><i style="background:#e0a015"></i>SHA-256</span>
+      <span><i style="background:#5b51e0"></i>keccak (2¹⁴)</span>
+    </div>
+    <div class="chart-wrap"><canvas id="c_size" role="img"
+      aria-label="Throughput vs batch size: BLAKE3 rises from 184 to 692 thousand per second across 2^10 to 2^18; SHA-256 from 129 to 334; keccak 247 at 2^14."></canvas></div>
+    <details><summary>data — thousands/sec</summary>
+      <table><thead><tr><th>size</th><th>BLAKE3</th><th>SHA-256</th><th>keccak</th></tr></thead>
+      <tbody>
+        <tr><td>2¹⁰</td><td>183.7</td><td>128.5</td><td>—</td></tr>
+        <tr><td>2¹²</td><td>320.6</td><td>224.2</td><td>—</td></tr>
+        <tr><td>2¹⁴</td><td>535.0</td><td>296.6</td><td>247.0</td></tr>
+        <tr><td>2¹⁶</td><td>647.6</td><td>333.7</td><td>—</td></tr>
+        <tr><td>2¹⁸</td><td>692.3</td><td>—</td><td>—</td></tr>
+      </tbody></table>
+    </details>
+  </section>
+
+  <!-- 4 -->
+  <section class="card">
+    <p class="eyebrow">§ 06 · per-phase prover breakdown</p>
+    <h2>Where prove time goes (2¹⁴, 12 threads)</h2>
+    <p class="cap"><b>zerocheck dominates</b> every hash, with the recursive <i>pcs::open</i> the
+      next-largest. Open is also the phase that scales worst with threads — it regresses past 12,
+      which is exactly why 12 threads beats 18 in typical runs.</p>
+    <div class="legend">
+      <span><i style="background:#5b51e0"></i>gen_witness</span>
+      <span><i style="background:#17a07a"></i>pcs::commit</span>
+      <span><i style="background:#e0a015"></i>zerocheck</span>
+      <span><i style="background:#4a8d2c"></i>lincheck</span>
+      <span><i style="background:#d8607a"></i>pcs::open</span>
+    </div>
+    <div class="chart-wrap"><canvas id="c_phase" role="img"
+      aria-label="Stacked phase percentages per hash. zerocheck is the largest phase for all three (42% keccak, 38% sha, 36% blake3); pcs::open is second."></canvas></div>
+  </section>
+
+  <!-- 5 -->
+  <section class="card">
+    <p class="eyebrow">§ 07 · parallel scaling (BLAKE3)</p>
+    <h2>Single-thread vs multi-thread, and the speedup</h2>
+    <p class="cap">One core saturates at <b>~93–95 K/s from 2¹⁴ up</b>, while 12 threads keep
+      climbing as larger batches feed every core. The speedup grows with size — small batches
+      can't amortize parallel overhead — reaching <b>7.3× at 2¹⁸</b>, the same ceiling keccak hit.</p>
+    <div class="two">
+      <div>
+        <div class="legend">
+          <span><i style="background:#5b51e0"></i>MT (12 threads)</span>
+          <span><i style="background:#b9b6e8"></i>ST (1 thread)</span>
+        </div>
+        <div class="chart-wrap"><canvas id="c_stmt" role="img"
+          aria-label="BLAKE3 throughput, ST flat near 94 thousand per second, MT rising to 692 thousand per second across sizes."></canvas></div>
+      </div>
+      <div>
+        <div class="legend"><span><i style="background:#17a07a"></i>speedup ×</span></div>
+        <div class="chart-wrap"><canvas id="c_speedup" role="img"
+          aria-label="Speedup by size: 3.4, 3.9, 5.7, 6.8, 7.3 times at 2^10 through 2^18."></canvas></div>
+      </div>
+    </div>
+    <details><summary>data</summary>
+      <table><thead><tr><th>size</th><th>ST K/s</th><th>MT K/s</th><th>speedup</th></tr></thead>
+      <tbody>
+        <tr><td>2¹⁰</td><td>54.5</td><td>183.7</td><td>3.4×</td></tr>
+        <tr><td>2¹²</td><td>82.0</td><td>320.6</td><td>3.9×</td></tr>
+        <tr><td>2¹⁴</td><td>93.2</td><td>535.0</td><td>5.7×</td></tr>
+        <tr><td>2¹⁶</td><td>95.2</td><td>647.6</td><td>6.8×</td></tr>
+        <tr><td>2¹⁸</td><td>94.3</td><td>692.3</td><td>7.3×</td></tr>
+      </tbody></table>
+    </details>
+  </section>
+
+  <!-- 6 -->
+  <section class="card">
+    <p class="eyebrow">§ 05 · keccak 2¹⁴ profile — fast vs slim</p>
+    <h2>The rate-1/4 proof-size tradeoff</h2>
+    <p class="cap">At matched 12 threads, the slim prover costs <b>~31% more prove time</b>
+      (130 vs 99 ms) to cut the proof <b>~48% smaller</b> (200 vs 386 KiB). Verify (~5 ms) and the
+      128 MB committed size are unchanged. Bars show prove time; proof size labeled on each.</p>
+    <div class="chart-wrap"><canvas id="c_slim" role="img"
+      aria-label="Prove time: Fast 12 threads 99.5 ms, Fast 18 threads 95.6 ms, Slim 12 threads 130.3 ms. Slim proof is 199.6 KiB versus 386 KiB for fast."></canvas></div>
+    <details><summary>data</summary>
+      <table><thead><tr><th>config</th><th>throughput</th><th>prove</th><th>verify</th><th>proof</th><th>peak</th></tr></thead>
+      <tbody>
+        <tr><td>Fast (12t)</td><td>247.0 K/s</td><td>99.5 ms</td><td>5.3 ms</td><td>386.0 KiB</td><td>1.72 GB</td></tr>
+        <tr><td>Fast (18t)</td><td>257.1 K/s</td><td>95.6 ms</td><td>5.6 ms</td><td>386.0 KiB</td><td>1.72 GB</td></tr>
+        <tr><td>Slim (12t)</td><td>188.6 K/s</td><td>130.3 ms</td><td>5.2 ms</td><td>199.6 KiB</td><td>2.00 GB</td></tr>
+      </tbody></table>
+    </details>
+    <p class="note">A third variant, <b>Flock-secure</b> (~120-bit), proves at essentially
+      the same speed as fast (249 vs 246 K/s) for a larger proof (558 KiB) — see the
+      cross-prover section below for how all three stack up against other systems.</p>
+  </section>
+
+  <!-- 7 cross-prover -->
+  <section class="card">
+    <p class="eyebrow">§ 02–05 · cross-prover comparison</p>
+    <h2>Flock vs Binius64 vs Hashcaster vs Plonky3 (12 threads, 2¹⁴)</h2>
+    <p class="cap">At matched threads and comparable security, <b>Flock proves keccak ~6×
+      faster than Binius64, ~6.3× faster than Hashcaster, and ~42× faster than Plonky3</b>,
+      and ~11–12× faster than the others on BLAKE3 (Hashcaster has no SHA-256/BLAKE3 circuit).</p>
+    <div class="legend">
+      <span><i style="background:#5b51e0"></i>Flock</span>
+      <span><i style="background:#e0a015"></i>Binius64</span>
+      <span><i style="background:#1baf7a"></i>Hashcaster</span>
+      <span><i style="background:#d8607a"></i>Plonky3</span>
+    </div>
+    <div class="chart-wrap"><canvas id="c_xprover" role="img"
+      aria-label="Throughput at 2^14, 12 threads. Flock 245, 294, 535 K/s for keccak, SHA-256, BLAKE3; Binius64 40, 38, 46; Hashcaster 39, none, none; Plonky3 6, none, 47."></canvas></div>
+    <p class="cap" style="margin-top:26px">Throughput isn't the only gap — Flock's
+      verification is far cheaper too (keccak 2¹⁴, log scale):</p>
+    <div class="chart-wrap" style="height:240px"><canvas id="c_verify" role="img"
+      aria-label="Verify time keccak 2^14, log scale: Flock 5.4 ms, Hashcaster 30.3 ms, Plonky3 18.8 ms, Binius64 295 ms."></canvas></div>
+    <details><summary>data — keccak 2¹⁴, 12 threads</summary>
+      <table><thead><tr><th>system</th><th>sec</th><th>throughput</th><th>prove</th><th>verify</th><th>proof</th><th>peak</th></tr></thead>
+      <tbody>
+        <tr><td>Flock-fast</td><td>~100</td><td>245.3 K/s</td><td>100 ms</td><td>5.4 ms</td><td>386.0 KiB</td><td>1.72 GB</td></tr>
+        <tr><td>Flock-secure</td><td>~120</td><td>247.0 K/s</td><td>100 ms</td><td>5.7 ms</td><td>557.8 KiB</td><td>1.72 GB</td></tr>
+        <tr><td>Flock-slim</td><td>~100</td><td>190.8 K/s</td><td>129 ms</td><td>5.3 ms</td><td>199.6 KiB</td><td>2.00 GB</td></tr>
+        <tr><td>Binius64</td><td>~96</td><td>40.4 K/s</td><td>406 ms</td><td>295 ms</td><td>457.4 KiB</td><td>2.49 GB</td></tr>
+        <tr><td>Hashcaster</td><td>100</td><td>38.8 K/s</td><td>633 ms</td><td>30.3 ms</td><td>664.2 KiB</td><td>0.37 GB</td></tr>
+        <tr><td>Plonky3</td><td>~101</td><td>5.9 K/s</td><td>3.73 s</td><td>18.8 ms</td><td>3.35 MiB</td><td>10.61 GB</td></tr>
+      </tbody></table>
+    </details>
+    <p class="note"><b>Caveats:</b> security bits differ slightly (Binius64 ~96, Plonky3 ~101,
+      Flock & Hashcaster ~100); throughput = hashes / prove, end-to-end incl. trace/witness gen;
+      these are independent compressions, not a chain. Hashcaster is the lightest on memory
+      (367 MB) but has the largest non-Plonky3 proof (664 KiB). Plonky3's proofs are far larger
+      (3.35 MiB keccak, 9.48 MiB BLAKE3) and it peaks at 10.6 GB on keccak.</p>
+  </section>
+
+  <footer>Flock @ succinctlabs · measured on Apple M5 Max · single-prover profile</footer>
+
+</main>
+
+<script>
+(function(){
+  Chart.defaults.font.family = "ui-monospace, SFMono-Regular, Menlo, monospace";
+  Chart.defaults.font.size = 12;
+  Chart.defaults.color = "#5b5a64";
+  var GRID = "#ececea", AXIS = "#d8d8d3", INK = "#17161c";
+  var P = {indigo:"#5b51e0", indigoSoft:"#b9b6e8", teal:"#17a07a", amber:"#e0a015",
+           gray:"#8a8982", green:"#4a8d2c", rose:"#d8607a"};
+
+  function valueLabels(suffix, decimals){
+    return {id:"vl"+Math.random(),afterDatasetsDraw:function(c){
+      var ctx=c.ctx; ctx.save(); ctx.font="600 11px ui-monospace, Menlo, monospace";
+      ctx.fillStyle=INK; ctx.textAlign="center";
+      c.data.datasets.forEach(function(ds,di){
+        if(ds._noLabel) return;
+        c.getDatasetMeta(di).data.forEach(function(el,i){
+          var v=ds.data[i]; if(v==null) return;
+          ctx.fillText(Number(v).toFixed(decimals)+(suffix||""), el.x, el.y-6);
+        });
+      });
+      ctx.restore();
+    }};
+  }
+  var baseScales = function(yt){return {
+    x:{grid:{display:false},ticks:{color:"#7a7982"},border:{color:AXIS}},
+    y:{beginAtZero:true,title:{display:!!yt,text:yt||"",color:"#7a7982"},
+       grid:{color:GRID},ticks:{color:"#7a7982"},border:{display:false}}
+  };};
+  var noLegend = {legend:{display:false}};
+
+  // 1 — native grouped bar
+  new Chart(document.getElementById("c_native"),{type:"bar",
+    data:{labels:["keccak-f[1600]","SHA-256","BLAKE3"],datasets:[
+      {label:"M4 Max",data:[7.5,7.0,18.0],backgroundColor:P.gray,borderRadius:4,maxBarThickness:46},
+      {label:"M5 Max",data:[7.9,6.9,18.1],backgroundColor:P.indigo,borderRadius:4,maxBarThickness:46}
+    ]},
+    plugins:[valueLabels("",1)],
+    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},
+      scales:baseScales("M ops/s"),plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:function(c){return c.dataset.label+": "+c.parsed.y+" M ops/s";}}}}}});
+
+  // 2 — keccak threads
+  new Chart(document.getElementById("c_kthreads"),{type:"bar",
+    data:{labels:["1","6","8","12","18"],datasets:[
+      {label:"throughput",data:[35.2,167.8,199.6,247.0,257.1],
+       backgroundColor:["#c8c5f2","#8a8982","#9a93ea","#5b51e0","#7e76e6"],
+       borderRadius:4,maxBarThickness:64}
+    ]},
+    plugins:[valueLabels("",0)],
+    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},
+      scales:{x:{grid:{display:false},title:{display:true,text:"threads",color:"#7a7982"},
+              ticks:{color:"#7a7982"},border:{color:AXIS}},
+        y:{beginAtZero:true,title:{display:true,text:"K keccak/s",color:"#7a7982"},
+           grid:{color:GRID},ticks:{color:"#7a7982"},border:{display:false}}},
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:function(c){return c.parsed.y+" K/s";}}}}}});
+
+  // 3 — throughput vs size (lines + keccak point)
+  new Chart(document.getElementById("c_size"),{type:"line",
+    data:{labels:["2¹⁰","2¹²","2¹⁴","2¹⁶","2¹⁸"],datasets:[
+      {label:"BLAKE3",data:[183.7,320.6,535.0,647.6,692.3],borderColor:P.teal,
+        backgroundColor:P.teal,tension:.3,borderWidth:2,pointRadius:3,pointBackgroundColor:P.teal},
+      {label:"SHA-256",data:[128.5,224.2,296.6,333.7,null],borderColor:P.amber,
+        backgroundColor:P.amber,tension:.3,borderWidth:2,borderDash:[5,4],pointRadius:3,pointBackgroundColor:P.amber,spanGaps:false},
+      {label:"keccak",data:[null,null,247.0,null,null],borderColor:P.indigo,
+        backgroundColor:P.indigo,pointRadius:6,pointStyle:"rectRot",pointBackgroundColor:P.indigo,showLine:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      scales:{x:{grid:{display:false},title:{display:true,text:"batch size",color:"#7a7982"},
+              ticks:{color:"#7a7982"},border:{color:AXIS}},
+        y:{beginAtZero:true,title:{display:true,text:"K hashes/s",color:"#7a7982"},
+           grid:{color:GRID},ticks:{color:"#7a7982"},border:{display:false}}},
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:function(c){return c.dataset.label+": "+c.parsed.y+" K/s";}}}}}});
+
+  // 4 — per-phase stacked %
+  var phases=[
+    {label:"gen_witness",data:[6.0,5.0,4.9],c:P.indigo},
+    {label:"pcs::commit",data:[26.5,26.5,22.5],c:P.teal},
+    {label:"zerocheck",data:[41.8,38.3,36.2],c:P.amber},
+    {label:"lincheck",data:[6.7,7.3,11.0],c:P.green},
+    {label:"pcs::open",data:[18.9,22.8,25.4],c:P.rose}
+  ].map(function(p){return {label:p.label,data:p.data,backgroundColor:p.c,
+      borderColor:"#ffffff",borderWidth:1.5,borderRadius:2};});
+  new Chart(document.getElementById("c_phase"),{type:"bar",
+    data:{labels:["keccak","sha256","blake3"],datasets:phases},
+    options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,
+      scales:{x:{stacked:true,max:100,grid:{color:GRID},ticks:{color:"#7a7982",callback:function(v){return v+"%";}},border:{display:false}},
+        y:{stacked:true,grid:{display:false},ticks:{color:"#7a7982"},border:{color:AXIS}}},
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:function(c){return c.dataset.label+": "+c.parsed.x+"%";}}}}}});
+
+  // 5a — ST vs MT lines
+  new Chart(document.getElementById("c_stmt"),{type:"line",
+    data:{labels:["2¹⁰","2¹²","2¹⁴","2¹⁶","2¹⁸"],datasets:[
+      {label:"MT (12t)",data:[183.7,320.6,535.0,647.6,692.3],borderColor:P.indigo,
+        backgroundColor:P.indigo,tension:.3,borderWidth:2,pointRadius:3,pointBackgroundColor:P.indigo},
+      {label:"ST (1t)",data:[54.5,82.0,93.2,95.2,94.3],borderColor:P.indigoSoft,
+        backgroundColor:P.indigoSoft,tension:.3,borderWidth:2,pointRadius:3,pointBackgroundColor:P.indigoSoft}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      scales:{x:{grid:{display:false},ticks:{color:"#7a7982"},border:{color:AXIS}},
+        y:{beginAtZero:true,title:{display:true,text:"K/s",color:"#7a7982"},
+           grid:{color:GRID},ticks:{color:"#7a7982"},border:{display:false}}},
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:function(c){return c.dataset.label+": "+c.parsed.y+" K/s";}}}}}});
+
+  // 5b — speedup bars
+  new Chart(document.getElementById("c_speedup"),{type:"bar",
+    data:{labels:["2¹⁰","2¹²","2¹⁴","2¹⁶","2¹⁸"],datasets:[
+      {label:"speedup",data:[3.4,3.9,5.7,6.8,7.3],backgroundColor:P.teal,borderRadius:4,maxBarThickness:30}
+    ]},
+    plugins:[valueLabels("×",1)],
+    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},
+      scales:{x:{grid:{display:false},ticks:{color:"#7a7982"},border:{color:AXIS}},
+        y:{beginAtZero:true,suggestedMax:8,grid:{color:GRID},ticks:{color:"#7a7982",callback:function(v){return v+"×";}},border:{display:false}}},
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:function(c){return c.parsed.y+"× faster";}}}}}});
+
+  // 6 — fast vs slim prove time, proof size as label
+  var proofSize=[386,386,199.6];
+  new Chart(document.getElementById("c_slim"),{type:"bar",
+    data:{labels:["Fast · 12t","Fast · 18t","Slim · 12t"],datasets:[
+      {label:"prove",data:[99.5,95.6,130.3],
+        backgroundColor:[P.indigo,P.indigo,P.teal],borderRadius:4,maxBarThickness:70}
+    ]},
+    plugins:[{id:"slimlabels",afterDatasetsDraw:function(c){
+      var ctx=c.ctx; ctx.save(); ctx.textAlign="center";
+      c.getDatasetMeta(0).data.forEach(function(el,i){
+        ctx.font="600 12px ui-monospace, Menlo, monospace"; ctx.fillStyle=INK;
+        ctx.fillText(c.data.datasets[0].data[i].toFixed(1)+" ms", el.x, el.y-22);
+        ctx.font="500 11px ui-monospace, Menlo, monospace"; ctx.fillStyle="#7a7982";
+        ctx.fillText(proofSize[i]+" KiB proof", el.x, el.y-7);
+      });
+      ctx.restore();
+    }}],
+    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:34}},
+      scales:{x:{grid:{display:false},ticks:{color:"#7a7982"},border:{color:AXIS}},
+        y:{beginAtZero:true,title:{display:true,text:"prove time (ms)",color:"#7a7982"},
+           grid:{color:GRID},ticks:{color:"#7a7982"},border:{display:false}}},
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:function(c){return c.parsed.y+" ms · "+proofSize[c.dataIndex]+" KiB proof";}}}}}});
+
+  // 7 — cross-prover throughput by hash (2^14, 12t)
+  new Chart(document.getElementById("c_xprover"),{type:"bar",
+    data:{labels:["keccak","SHA-256","BLAKE3"],datasets:[
+      {label:"Flock",data:[245.3,294.4,535.1],backgroundColor:P.indigo,borderRadius:4,maxBarThickness:34},
+      {label:"Binius64",data:[40.4,38.3,46.0],backgroundColor:P.amber,borderRadius:4,maxBarThickness:34},
+      {label:"Hashcaster",data:[38.8,null,null],backgroundColor:P.teal,borderRadius:4,maxBarThickness:34},
+      {label:"Plonky3",data:[5.9,null,46.8],backgroundColor:P.rose,borderRadius:4,maxBarThickness:34}
+    ]},
+    plugins:[valueLabels("",0)],
+    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},
+      scales:{x:{grid:{display:false},ticks:{color:"#7a7982"},border:{color:AXIS}},
+        y:{beginAtZero:true,title:{display:true,text:"K hashes/s  (2¹⁴, 12t)",color:"#7a7982"},
+           grid:{color:GRID},ticks:{color:"#7a7982"},border:{display:false}}},
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:function(c){return c.dataset.label+": "+(c.parsed.y==null?"n/a":c.parsed.y+" K/s");}}}}}});
+
+  // 8 — cross-prover verify time (keccak 2^14, log scale)
+  new Chart(document.getElementById("c_verify"),{type:"bar",
+    data:{labels:["Flock","Hashcaster","Plonky3","Binius64"],datasets:[
+      {label:"verify",data:[5.4,30.3,18.8,295],backgroundColor:[P.indigo,P.teal,P.rose,P.amber],borderRadius:4,maxBarThickness:80}
+    ]},
+    plugins:[{id:"vlog",afterDatasetsDraw:function(c){
+      var ctx=c.ctx; ctx.save(); ctx.font="600 12px ui-monospace, Menlo, monospace";
+      ctx.fillStyle=INK; ctx.textAlign="center";
+      c.getDatasetMeta(0).data.forEach(function(el,i){
+        ctx.fillText(c.data.datasets[0].data[i]+" ms", el.x, el.y-7);
+      });
+      ctx.restore();
+    }}],
+    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},
+      scales:{x:{grid:{display:false},ticks:{color:"#7a7982"},border:{color:AXIS}},
+        y:{type:"logarithmic",title:{display:true,text:"verify (ms, log)",color:"#7a7982"},
+           grid:{color:GRID},ticks:{color:"#7a7982"},border:{display:false}}},
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:function(c){return c.parsed.y+" ms";}}}}}});
+})();
+</script>
+</body>
+</html>
