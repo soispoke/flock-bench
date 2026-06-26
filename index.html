@@ -243,8 +243,8 @@
   <section class="card">
     <p class="eyebrow">§ 02–05 · cross-prover comparison</p>
     <h2>Flock vs Binius64 vs Hashcaster vs Plonky3 (12 threads, 2¹⁴)</h2>
-    <p class="cap">At matched threads and comparable security, <b>Flock proves keccak ~6×
-      faster than Binius64, ~6.3× faster than Hashcaster, and ~42× faster than Plonky3</b>,
+    <p class="cap">At matched threads and comparable security, <b>Flock proves keccak ~5.9×
+      faster than Binius64, ~6.2× faster than Hashcaster, and ~42× faster than Plonky3</b>,
       and ~11–12× faster than the others on BLAKE3 (Hashcaster has no SHA-256/BLAKE3 circuit).</p>
     <div class="legend">
       <span><i style="background:#5b51e0"></i>Flock</span>
@@ -253,20 +253,20 @@
       <span><i style="background:#d8607a"></i>Plonky3</span>
     </div>
     <div class="chart-wrap"><canvas id="c_xprover" role="img"
-      aria-label="Throughput at 2^14, 12 threads. Flock 245, 294, 535 K/s for keccak, SHA-256, BLAKE3; Binius64 40, 38, 46; Hashcaster 39, none, none; Plonky3 6, none, 47."></canvas></div>
+      aria-label="Throughput at 2^14, 12 threads. Flock 247, 291, 523 K/s for keccak, SHA-256, BLAKE3; Binius64 42, 40, 47; Hashcaster 40, none, none; Plonky3 6, none, 48."></canvas></div>
     <p class="cap" style="margin-top:26px">Throughput isn't the only gap — Flock's
       verification is far cheaper too (keccak 2¹⁴, log scale):</p>
     <div class="chart-wrap" style="height:240px"><canvas id="c_verify" role="img"
-      aria-label="Verify time keccak 2^14, log scale: Flock 5.4 ms, Hashcaster 30.3 ms, Plonky3 18.8 ms, Binius64 295 ms."></canvas></div>
+      aria-label="Verify time keccak 2^14, log scale: Flock 5.3 ms, Hashcaster 31.5 ms, Plonky3 18.7 ms, Binius64 281 ms."></canvas></div>
     <details><summary>data — keccak 2¹⁴, 12 threads</summary>
       <table><thead><tr><th>system</th><th>sec</th><th>throughput</th><th>prove</th><th>verify</th><th>proof</th><th>peak</th></tr></thead>
       <tbody>
-        <tr><td>Flock-fast</td><td>~100</td><td>245.3 K/s</td><td>100 ms</td><td>5.4 ms</td><td>386.0 KiB</td><td>1.72 GB</td></tr>
-        <tr><td>Flock-secure</td><td>~120</td><td>247.0 K/s</td><td>100 ms</td><td>5.7 ms</td><td>557.8 KiB</td><td>1.72 GB</td></tr>
-        <tr><td>Flock-slim</td><td>~100</td><td>190.8 K/s</td><td>129 ms</td><td>5.3 ms</td><td>199.6 KiB</td><td>2.00 GB</td></tr>
-        <tr><td>Binius64</td><td>~96</td><td>40.4 K/s</td><td>406 ms</td><td>295 ms</td><td>457.4 KiB</td><td>2.49 GB</td></tr>
-        <tr><td>Hashcaster</td><td>100</td><td>38.8 K/s</td><td>633 ms</td><td>30.3 ms</td><td>664.2 KiB</td><td>0.37 GB</td></tr>
-        <tr><td>Plonky3</td><td>~101</td><td>5.9 K/s</td><td>3.73 s</td><td>18.8 ms</td><td>3.35 MiB</td><td>10.61 GB</td></tr>
+        <tr><td>Flock-fast</td><td>~100</td><td>246.5 K/s</td><td>100 ms</td><td>5.3 ms</td><td>386.0 KiB</td><td>1.72 GB</td></tr>
+        <tr><td>Flock-secure</td><td>~120</td><td>249.5 K/s</td><td>99 ms</td><td>5.7 ms</td><td>557.8 KiB</td><td>1.72 GB</td></tr>
+        <tr><td>Flock-slim</td><td>~100</td><td>190.8 K/s</td><td>129 ms</td><td>5.2 ms</td><td>199.6 KiB</td><td>2.00 GB</td></tr>
+        <tr><td>Binius64</td><td>~96</td><td>42.0 K/s</td><td>390 ms</td><td>281 ms</td><td>457.4 KiB</td><td>2.49 GB</td></tr>
+        <tr><td>Hashcaster</td><td>100</td><td>39.5 K/s</td><td>623 ms</td><td>31.5 ms</td><td>664.2 KiB</td><td>0.37 GB</td></tr>
+        <tr><td>Plonky3</td><td>~101</td><td>5.9 K/s</td><td>3.68 s</td><td>18.7 ms</td><td>3.35 MiB</td><td>10.61 GB</td></tr>
       </tbody></table>
     </details>
     <p class="note"><b>Caveats:</b> security bits differ slightly (Binius64 ~96, Plonky3 ~101,
@@ -276,7 +276,41 @@
       (3.35 MiB keccak, 9.48 MiB BLAKE3) and it peaks at 10.6 GB on keccak.</p>
   </section>
 
-  <footer>Flock @ succinctlabs · measured on Apple M5 Max · single-prover profile</footer>
+  <!-- 8 scaling / 1M -->
+  <section class="card">
+    <p class="eyebrow">§ 08 · scaling to peak — the 1M question</p>
+    <h2>How fast can the chip actually go? (BLAKE3, all 18 cores)</h2>
+    <p class="cap">The cross-prover tables above run at 12 threads for fairness. Unleashing all
+      <b>18 cores</b> on Flock's BLAKE3 prover finds the machine's true ceiling:
+      <b>~825K compressions/sec at 2²⁰</b> — and it <i>declines</i> beyond that, so bigger
+      batches don't help despite 128 GB of headroom.</p>
+    <div class="chart-wrap"><canvas id="c_scaling" role="img"
+      aria-label="BLAKE3 throughput vs batch size at 18 threads: 2^18 790K, 2^19 762K, 2^20 825K (peak), 2^21 703K compressions/sec."></canvas></div>
+    <p class="cap" style="margin-top:26px">Why it stalls short of 1M: at the 2²⁰ peak,
+      <b>77% of prove time is in the two GB-streaming phases</b> (zerocheck + commit), while
+      the more-sequential PCS open is only 15%. That's the signature of a <b>memory-bandwidth</b>
+      limit, not a thread or compute limit.</p>
+    <details open><summary>per-phase breakdown — 2²⁰, 18 threads</summary>
+      <table><thead><tr><th>phase</th><th>time</th><th>share</th></tr></thead>
+      <tbody>
+        <tr><td>zerocheck::prove_packed</td><td>553 ms</td><td>42%</td></tr>
+        <tr><td>pcs::commit</td><td>455 ms</td><td>35%</td></tr>
+        <tr><td>pcs::open (ligerito)</td><td>195 ms</td><td>15%</td></tr>
+        <tr><td>lincheck::prove</td><td>101 ms</td><td>8%</td></tr>
+        <tr><td>gen_witness + lincheck</td><td>70 ms</td><td>5%</td></tr>
+      </tbody></table>
+    </details>
+    <p class="note"><b>Does recursion / partitioning get to 1M?</b> Tested directly: four
+      independent 2¹⁸ proofs run concurrently (4 threads each) finished in 7.7 s wall —
+      ~136K compressions/sec <i>effective</i>, ~6× <b>slower</b> than the single 2²⁰ run.
+      Splitting the work doesn't help because the sub-proofs contend for the same saturated
+      memory bus. So 1M/s isn't reachable on this chip by more cores, bigger batches, or
+      aggregation — it would need an <b>algorithmic</b> cut in bytes-moved per compression
+      (lighter commit / zerocheck), not more parallelism. Memory was verified clean: swap
+      never engaged, the prover got the full 128 GB it asked for. Two footnotes on threads:
+      18 cores beat 12 here (~18% at 2²⁰), the opposite of small keccak instances where the
+      PCS open over-threads past 12 — scaling behaviour is size-dependent.</p>
+  </section>
 
 </main>
 
@@ -426,10 +460,10 @@
   // 7 — cross-prover throughput by hash (2^14, 12t)
   new Chart(document.getElementById("c_xprover"),{type:"bar",
     data:{labels:["keccak","SHA-256","BLAKE3"],datasets:[
-      {label:"Flock",data:[245.3,294.4,535.1],backgroundColor:P.indigo,borderRadius:4,maxBarThickness:34},
-      {label:"Binius64",data:[40.4,38.3,46.0],backgroundColor:P.amber,borderRadius:4,maxBarThickness:34},
-      {label:"Hashcaster",data:[38.8,null,null],backgroundColor:P.teal,borderRadius:4,maxBarThickness:34},
-      {label:"Plonky3",data:[5.9,null,46.8],backgroundColor:P.rose,borderRadius:4,maxBarThickness:34}
+      {label:"Flock",data:[246.5,291.2,522.9],backgroundColor:P.indigo,borderRadius:4,maxBarThickness:34},
+      {label:"Binius64",data:[42.0,40.0,47.1],backgroundColor:P.amber,borderRadius:4,maxBarThickness:34},
+      {label:"Hashcaster",data:[39.5,null,null],backgroundColor:P.teal,borderRadius:4,maxBarThickness:34},
+      {label:"Plonky3",data:[5.9,null,48.4],backgroundColor:P.rose,borderRadius:4,maxBarThickness:34}
     ]},
     plugins:[valueLabels("",0)],
     options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},
@@ -442,7 +476,7 @@
   // 8 — cross-prover verify time (keccak 2^14, log scale)
   new Chart(document.getElementById("c_verify"),{type:"bar",
     data:{labels:["Flock","Hashcaster","Plonky3","Binius64"],datasets:[
-      {label:"verify",data:[5.4,30.3,18.8,295],backgroundColor:[P.indigo,P.teal,P.rose,P.amber],borderRadius:4,maxBarThickness:80}
+      {label:"verify",data:[5.3,31.5,18.7,281],backgroundColor:[P.indigo,P.teal,P.rose,P.amber],borderRadius:4,maxBarThickness:80}
     ]},
     plugins:[{id:"vlog",afterDatasetsDraw:function(c){
       var ctx=c.ctx; ctx.save(); ctx.font="600 12px ui-monospace, Menlo, monospace";
@@ -458,6 +492,20 @@
            grid:{color:GRID},ticks:{color:"#7a7982"},border:{display:false}}},
       plugins:{legend:{display:false},
         tooltip:{callbacks:{label:function(c){return c.parsed.y+" ms";}}}}}});
+
+  // 9 — BLAKE3 scaling to peak (18 threads, by batch size)
+  new Chart(document.getElementById("c_scaling"),{type:"bar",
+    data:{labels:["2¹⁸","2¹⁹","2²⁰","2²¹"],datasets:[
+      {label:"throughput",data:[790,762,825,703],
+       backgroundColor:["#bcb8f0","#bcb8f0",P.indigo,"#bcb8f0"],borderRadius:4,maxBarThickness:70}
+    ]},
+    plugins:[valueLabels("K",0)],
+    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},
+      scales:{x:{grid:{display:false},ticks:{color:"#7a7982"},border:{color:AXIS}},
+        y:{beginAtZero:true,title:{display:true,text:"K compressions/s  (BLAKE3, 18t)",color:"#7a7982"},
+           grid:{color:GRID},ticks:{color:"#7a7982"},border:{display:false}}},
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:function(c){return c.parsed.y+"K comp/s";}}}}}});
 })();
 </script>
 </body>
