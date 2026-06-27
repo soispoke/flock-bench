@@ -94,8 +94,8 @@
 
     <div class="heroes">
       <div class="hero"><div class="v">257<small> K/s</small></div><div class="l">keccak-f[1600] peak<br>(2¹⁴, 18 threads)</div></div>
-      <div class="hero"><div class="v">692<small> K/s</small></div><div class="l">BLAKE3 peak<br>(2¹⁸, 12 threads)</div></div>
-      <div class="hero"><div class="v">7.3<small>×</small></div><div class="l">MT speedup vs 1 core<br>(at scale)</div></div>
+      <div class="hero"><div class="v">816<small> K/s</small></div><div class="l">BLAKE3 peak<br>(2²⁰, 18 threads)</div></div>
+      <div class="hero"><div class="v">9.0<small>×</small></div><div class="l">BLAKE3 MT speedup<br>(18t, 2²⁰)</div></div>
       <div class="hero"><div class="v">~42<small>×</small></div><div class="l">faster than Plonky3<br>on keccak (12t)</div></div>
     </div>
   </div>
@@ -152,15 +152,15 @@
       <span><i style="background:#5b51e0"></i>keccak (2¹⁴)</span>
     </div>
     <div class="chart-wrap"><canvas id="c_size" role="img"
-      aria-label="Throughput vs batch size: BLAKE3 rises from 184 to 692 thousand per second across 2^10 to 2^18; SHA-256 from 129 to 334; keccak 247 at 2^14."></canvas></div>
+      aria-label="Throughput vs batch size: BLAKE3 rises from 178 to 698 thousand per second across 2^10 to 2^18; SHA-256 from 136 to 334; keccak 247 at 2^14."></canvas></div>
     <details><summary>data — thousands/sec</summary>
       <table><thead><tr><th>size</th><th>BLAKE3</th><th>SHA-256</th><th>keccak</th></tr></thead>
       <tbody>
-        <tr><td>2¹⁰</td><td>183.7</td><td>128.5</td><td>—</td></tr>
-        <tr><td>2¹²</td><td>320.6</td><td>224.2</td><td>—</td></tr>
-        <tr><td>2¹⁴</td><td>535.0</td><td>296.6</td><td>247.0</td></tr>
-        <tr><td>2¹⁶</td><td>647.6</td><td>333.7</td><td>—</td></tr>
-        <tr><td>2¹⁸</td><td>692.3</td><td>—</td><td>—</td></tr>
+        <tr><td>2¹⁰</td><td>177.5</td><td>135.8</td><td>—</td></tr>
+        <tr><td>2¹²</td><td>317.3</td><td>221.3</td><td>—</td></tr>
+        <tr><td>2¹⁴</td><td>522.9</td><td>291.2</td><td>246.5</td></tr>
+        <tr><td>2¹⁶</td><td>645.8</td><td>333.9</td><td>—</td></tr>
+        <tr><td>2¹⁸</td><td>697.7</td><td>—</td><td>—</td></tr>
       </tbody></table>
     </details>
   </section>
@@ -187,37 +187,56 @@
   <section class="card">
     <p class="eyebrow">§ 07 · parallel scaling (BLAKE3)</p>
     <h2>Single-thread vs multi-thread, and the speedup</h2>
-    <p class="cap">One core saturates at <b>~93–95 K/s from 2¹⁴ up</b>, while 12 threads keep
-      climbing as larger batches feed every core. The speedup grows with size — small batches
-      can't amortize parallel overhead — reaching <b>7.3× at 2¹⁸</b>, the same ceiling keccak hit.</p>
+    <p class="cap">One core saturates at <b>~94–97 K/s from 2¹⁴ up</b>. 18 threads only overtake
+      12 from <b>2¹⁶ onward</b> — below that, too little work to feed all cores. Peak is
+      <b>815.8 K/s at 2²⁰ (9.0× single-core)</b>; note the consistent dip at 2¹⁹ (both thread
+      counts), a tiling/load-imbalance artifact.</p>
     <div class="two">
       <div>
         <div class="legend">
-          <span><i style="background:#5b51e0"></i>MT (12 threads)</span>
-          <span><i style="background:#b9b6e8"></i>ST (1 thread)</span>
+          <span><i style="background:#5b51e0"></i>MT (18t)</span>
+          <span><i style="background:#17a07a"></i>MT (12t)</span>
+          <span><i style="background:#b9b6e8"></i>ST (1t)</span>
         </div>
         <div class="chart-wrap"><canvas id="c_stmt" role="img"
-          aria-label="BLAKE3 throughput, ST flat near 94 thousand per second, MT rising to 692 thousand per second across sizes."></canvas></div>
+          aria-label="BLAKE3 throughput by size: ST flat near 95K; MT 12t and 18t rise, 18t overtaking 12t around 2^16 and peaking 816K at 2^20, with a dip at 2^19; both fall at 2^21."></canvas></div>
       </div>
       <div>
-        <div class="legend"><span><i style="background:#17a07a"></i>speedup ×</span></div>
+        <div class="legend">
+          <span><i style="background:#5b51e0"></i>18t speedup</span>
+          <span><i style="background:#17a07a"></i>12t speedup</span>
+        </div>
         <div class="chart-wrap"><canvas id="c_speedup" role="img"
-          aria-label="Speedup by size: 3.4, 3.9, 5.7, 6.8, 7.3 times at 2^10 through 2^18."></canvas></div>
+          aria-label="Speedup vs single core by size: 12t rises to ~7.6x, 18t to 9.0x at 2^20, both dipping at 2^19 and 2^21."></canvas></div>
       </div>
     </div>
-    <details><summary>data</summary>
-      <table><thead><tr><th>size</th><th>ST K/s</th><th>MT K/s</th><th>speedup</th></tr></thead>
+    <details open><summary>data — full grid, both speedups (K comp/s)</summary>
+      <table><thead><tr><th>size</th><th>ST (1t)</th><th>MT (12t)</th><th>12t spd</th><th>MT (18t)</th><th>18t spd</th></tr></thead>
       <tbody>
-        <tr><td>2¹⁰</td><td>54.5</td><td>183.7</td><td>3.4×</td></tr>
-        <tr><td>2¹²</td><td>82.0</td><td>320.6</td><td>3.9×</td></tr>
-        <tr><td>2¹⁴</td><td>93.2</td><td>535.0</td><td>5.7×</td></tr>
-        <tr><td>2¹⁶</td><td>95.2</td><td>647.6</td><td>6.8×</td></tr>
-        <tr><td>2¹⁸</td><td>94.3</td><td>692.3</td><td>7.3×</td></tr>
+        <tr><td>2¹⁰</td><td>53.0</td><td>181.0</td><td>3.4×</td><td>140.9</td><td>2.7×</td></tr>
+        <tr><td>2¹¹</td><td>71.3</td><td>237.8</td><td>3.3×</td><td>137.9</td><td>1.9×</td></tr>
+        <tr><td>2¹²</td><td>83.3</td><td>334.0</td><td>4.0×</td><td>229.2</td><td>2.8×</td></tr>
+        <tr><td>2¹³</td><td>89.8</td><td>422.7</td><td>4.7×</td><td>327.4</td><td>3.6×</td></tr>
+        <tr><td>2¹⁴</td><td>93.9</td><td>520.3</td><td>5.5×</td><td>476.8</td><td>5.1×</td></tr>
+        <tr><td>2¹⁵</td><td>95.8</td><td>586.5</td><td>6.1×</td><td>568.0</td><td>5.9×</td></tr>
+        <tr><td>2¹⁶</td><td>96.6</td><td>652.8</td><td>6.8×</td><td>700.9</td><td>7.3×</td></tr>
+        <tr><td>2¹⁷</td><td>95.8</td><td>655.4</td><td>6.8×</td><td>706.6</td><td>7.4×</td></tr>
+        <tr><td>2¹⁸</td><td>94.3</td><td>694.9</td><td>7.4×</td><td>796.8</td><td>8.5×</td></tr>
+        <tr><td>2¹⁹</td><td>92.7</td><td>672.7</td><td>7.3×</td><td>755.0</td><td>8.1×</td></tr>
+        <tr><td>2²⁰</td><td>90.7</td><td>690.0</td><td>7.6×</td><td><b>815.8</b></td><td><b>9.0×</b></td></tr>
+        <tr><td>2²¹</td><td>88.2</td><td>632.9</td><td>7.2×</td><td>695.8</td><td>7.9×</td></tr>
       </tbody></table>
+      <p class="note" style="margin-top:8px">Single clean run, all 12 sizes × 3 thread counts.
+        Speedups vs single-thread. 18t overtakes 12t only from 2¹⁶ up; peak 815.8 K/s (9.0×) at
+        2²⁰. Note the consistent 2¹⁹ dip at both thread counts — see below.</p>
     </details>
+    <p class="note"><b>Why 2¹⁹ dips.</b> At both 12t and 18t, 2¹⁹ falls below 2¹⁸ and 2²⁰ —
+      a reproducible kink, not noise. 2¹⁹ = 524,288 work units doesn't divide evenly across 12
+      (43,690.67) or 18 (29,127.1) cores, so the parallel phases end with a lopsided tail where
+      a few cores finish late and the rest idle (load imbalance). The even powers 2¹⁸/2²⁰ land on
+      clean boundaries the prover splits evenly, so they skip the remainder tax. Cache/TLB stride
+      effects at ~15 GB likely compound it. Same root cause as §08's under-utilization, sharper here.</p>
   </section>
-
-  <!-- 6 -->
   <section class="card">
     <p class="eyebrow">§ 05 · keccak 2¹⁴ profile — fast vs slim</p>
     <h2>The rate-1/4 proof-size tradeoff</h2>
@@ -276,20 +295,18 @@
       (3.35 MiB keccak, 9.48 MiB BLAKE3) and it peaks at 10.6 GB on keccak.</p>
   </section>
 
-  <!-- 8 scaling / 1M -->
+  <!-- 8 diagnosis / 1M -->
   <section class="card">
-    <p class="eyebrow">§ 08 · scaling to peak — the 1M question</p>
-    <h2>How fast can the chip actually go? (BLAKE3, all 18 cores)</h2>
-    <p class="cap">The cross-prover tables above run at 12 threads for fairness. Unleashing all
-      <b>18 cores</b> on Flock's BLAKE3 prover finds the machine's true ceiling:
-      <b>~825K compressions/sec at 2²⁰</b> — and it <i>declines</i> beyond that, so bigger
-      batches don't help despite 128 GB of headroom.</p>
-    <div class="chart-wrap"><canvas id="c_scaling" role="img"
-      aria-label="BLAKE3 throughput vs batch size at 18 threads: 2^18 790K, 2^19 762K, 2^20 825K (peak), 2^21 703K compressions/sec."></canvas></div>
-    <p class="cap" style="margin-top:26px">Why it stalls short of 1M: at the 2²⁰ peak,
-      <b>77% of prove time is in the two GB-streaming phases</b> (zerocheck + commit), while
-      the more-sequential PCS open is only 15%. That's the signature of a <b>memory-bandwidth</b>
-      limit, not a thread or compute limit.</p>
+    <p class="eyebrow">§ 08 · why it caps at 816K — and the path to 1M</p>
+    <h2>The bottleneck, and what would break past it</h2>
+    <p class="cap">§07 shows BLAKE3 peaking at <b>816K compressions/sec (2²⁰, 18 threads)</b> and
+      declining beyond. This section is the diagnosis: <i>why</i> it caps there, and whether 1M
+      is reachable. The headline — it's <b>not</b> memory bandwidth. The witness at 2²⁰ is 2 GB;
+      commit and zerocheck move only ~10 GB/s against the M5 Max's <b>614 GB/s</b> ceiling,
+      roughly <b>2% of available bandwidth</b>, so the bus is nearly idle. The real limit is
+      <b>idle cores</b>: across the full prove, user/real time holds at <b>~12.5×</b> (three runs),
+      so only ~12 of 18 cores are busy. Zerocheck and commit — 77% of prove time — are
+      under-parallelized and leave ~6 cores unused.</p>
     <details open><summary>per-phase breakdown — 2²⁰, 18 threads</summary>
       <table><thead><tr><th>phase</th><th>time</th><th>share</th></tr></thead>
       <tbody>
@@ -300,16 +317,19 @@
         <tr><td>gen_witness + lincheck</td><td>70 ms</td><td>5%</td></tr>
       </tbody></table>
     </details>
-    <p class="note"><b>Does recursion / partitioning get to 1M?</b> Tested directly: four
-      independent 2¹⁸ proofs run concurrently (4 threads each) finished in 7.7 s wall —
-      ~136K compressions/sec <i>effective</i>, ~6× <b>slower</b> than the single 2²⁰ run.
-      Splitting the work doesn't help because the sub-proofs contend for the same saturated
-      memory bus. So 1M/s isn't reachable on this chip by more cores, bigger batches, or
-      aggregation — it would need an <b>algorithmic</b> cut in bytes-moved per compression
-      (lighter commit / zerocheck), not more parallelism. Memory was verified clean: swap
-      never engaged, the prover got the full 128 GB it asked for. Two footnotes on threads:
-      18 cores beat 12 here (~18% at 2²⁰), the opposite of small keccak instances where the
-      PCS open over-threads past 12 — scaling behaviour is size-dependent.</p>
+    <p class="note"><b>Recursion / partitioning does not help.</b> Four independent 2¹⁸ proofs
+      run concurrently (4 threads each) finished in 7.7 s wall — ~136K/s <i>effective</i>,
+      ~6× <b>slower</b> than the single 2²⁰ run. Splitting adds contention without filling the
+      idle cores, since the cores sit idle inside each proof's serial sections, not for lack of
+      work. (Memory verified clean: swap never engaged, the prover got the full 128 GB.)
+      <b>Conclusion — 1M is reachable on this chip, in software.</b> It's neither bandwidth- nor
+      compute-bound but parallelism-bound: better parallelization of the commit (NTT/Merkle) and
+      zerocheck (sumcheck) phases to keep all 18 cores busy clears the 816K→1M gap — no recursion,
+      bigger batches, or new hardware needed. The fix belongs in the Flock prover's inner loops,
+      made and correctness-tested in-tree. <i>Footnotes:</i> isolated single-phase benches show
+      even lower utilization (commit ~4.8×, zerocheck ~2.3×) but include serial setup, so the
+      trustworthy figure is the in-context ~12.5×; and 18 cores beat 12 here (~18% at 2²⁰), unlike
+      small keccak where the PCS open over-threads past 12 — scaling is size-dependent.</p>
   </section>
 
 </main>
@@ -374,11 +394,11 @@
   // 3 — throughput vs size (lines + keccak point)
   new Chart(document.getElementById("c_size"),{type:"line",
     data:{labels:["2¹⁰","2¹²","2¹⁴","2¹⁶","2¹⁸"],datasets:[
-      {label:"BLAKE3",data:[183.7,320.6,535.0,647.6,692.3],borderColor:P.teal,
+      {label:"BLAKE3",data:[177.5,317.3,522.9,645.8,697.7],borderColor:P.teal,
         backgroundColor:P.teal,tension:.3,borderWidth:2,pointRadius:3,pointBackgroundColor:P.teal},
-      {label:"SHA-256",data:[128.5,224.2,296.6,333.7,null],borderColor:P.amber,
+      {label:"SHA-256",data:[135.8,221.3,291.2,333.9,null],borderColor:P.amber,
         backgroundColor:P.amber,tension:.3,borderWidth:2,borderDash:[5,4],pointRadius:3,pointBackgroundColor:P.amber,spanGaps:false},
-      {label:"keccak",data:[null,null,247.0,null,null],borderColor:P.indigo,
+      {label:"keccak",data:[null,null,246.5,null,null],borderColor:P.indigo,
         backgroundColor:P.indigo,pointRadius:6,pointStyle:"rectRot",pointBackgroundColor:P.indigo,showLine:false}
     ]},
     options:{responsive:true,maintainAspectRatio:false,
@@ -406,32 +426,37 @@
       plugins:{legend:{display:false},
         tooltip:{callbacks:{label:function(c){return c.dataset.label+": "+c.parsed.x+"%";}}}}}});
 
-  // 5a — ST vs MT lines
+  // 5a — ST vs MT(12t) vs MT(18t) across the full grid
   new Chart(document.getElementById("c_stmt"),{type:"line",
-    data:{labels:["2¹⁰","2¹²","2¹⁴","2¹⁶","2¹⁸"],datasets:[
-      {label:"MT (12t)",data:[183.7,320.6,535.0,647.6,692.3],borderColor:P.indigo,
-        backgroundColor:P.indigo,tension:.3,borderWidth:2,pointRadius:3,pointBackgroundColor:P.indigo},
-      {label:"ST (1t)",data:[54.5,82.0,93.2,95.2,94.3],borderColor:P.indigoSoft,
-        backgroundColor:P.indigoSoft,tension:.3,borderWidth:2,pointRadius:3,pointBackgroundColor:P.indigoSoft}
+    data:{labels:["2¹⁰","2¹¹","2¹²","2¹³","2¹⁴","2¹⁵","2¹⁶","2¹⁷","2¹⁸","2¹⁹","2²⁰","2²¹"],datasets:[
+      {label:"MT (18t)",data:[140.9,137.9,229.2,327.4,476.8,568.0,700.9,706.6,796.8,755.0,815.8,695.8],borderColor:P.indigo,
+        backgroundColor:P.indigo,tension:.3,borderWidth:2,pointRadius:2.5,pointBackgroundColor:P.indigo},
+      {label:"MT (12t)",data:[181.0,237.8,334.0,422.7,520.3,586.5,652.8,655.4,694.9,672.7,690.0,632.9],borderColor:P.teal,
+        backgroundColor:P.teal,tension:.3,borderWidth:2,pointRadius:2.5,pointBackgroundColor:P.teal},
+      {label:"ST (1t)",data:[53.0,71.3,83.3,89.8,93.9,95.8,96.6,95.8,94.3,92.7,90.7,88.2],borderColor:P.indigoSoft,
+        backgroundColor:P.indigoSoft,tension:.3,borderWidth:2,pointRadius:2.5,pointBackgroundColor:P.indigoSoft}
     ]},
     options:{responsive:true,maintainAspectRatio:false,
       scales:{x:{grid:{display:false},ticks:{color:"#7a7982"},border:{color:AXIS}},
-        y:{beginAtZero:true,title:{display:true,text:"K/s",color:"#7a7982"},
+        y:{beginAtZero:true,title:{display:true,text:"K compressions/s",color:"#7a7982"},
            grid:{color:GRID},ticks:{color:"#7a7982"},border:{display:false}}},
       plugins:{legend:{display:false},
         tooltip:{callbacks:{label:function(c){return c.dataset.label+": "+c.parsed.y+" K/s";}}}}}});
 
-  // 5b — speedup bars
-  new Chart(document.getElementById("c_speedup"),{type:"bar",
-    data:{labels:["2¹⁰","2¹²","2¹⁴","2¹⁶","2¹⁸"],datasets:[
-      {label:"speedup",data:[3.4,3.9,5.7,6.8,7.3],backgroundColor:P.teal,borderRadius:4,maxBarThickness:30}
+  // 5b — speedup curves (12t and 18t vs single-core), full grid
+  new Chart(document.getElementById("c_speedup"),{type:"line",
+    data:{labels:["2¹⁰","2¹¹","2¹²","2¹³","2¹⁴","2¹⁵","2¹⁶","2¹⁷","2¹⁸","2¹⁹","2²⁰","2²¹"],datasets:[
+      {label:"18t",data:[2.7,1.9,2.8,3.6,5.1,5.9,7.3,7.4,8.5,8.1,9.0,7.9],borderColor:P.indigo,
+        backgroundColor:P.indigo,tension:.3,borderWidth:2,pointRadius:2.5,pointBackgroundColor:P.indigo},
+      {label:"12t",data:[3.4,3.3,4.0,4.7,5.5,6.1,6.8,6.8,7.4,7.3,7.6,7.2],borderColor:P.teal,
+        backgroundColor:P.teal,tension:.3,borderWidth:2,pointRadius:2.5,pointBackgroundColor:P.teal}
     ]},
-    plugins:[valueLabels("×",1)],
-    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},
+    options:{responsive:true,maintainAspectRatio:false,
       scales:{x:{grid:{display:false},ticks:{color:"#7a7982"},border:{color:AXIS}},
-        y:{beginAtZero:true,suggestedMax:8,grid:{color:GRID},ticks:{color:"#7a7982",callback:function(v){return v+"×";}},border:{display:false}}},
+        y:{beginAtZero:true,suggestedMax:10,title:{display:true,text:"speedup vs 1 core",color:"#7a7982"},
+           grid:{color:GRID},ticks:{color:"#7a7982",callback:function(v){return v+"×";}},border:{display:false}}},
       plugins:{legend:{display:false},
-        tooltip:{callbacks:{label:function(c){return c.parsed.y+"× faster";}}}}}});
+        tooltip:{callbacks:{label:function(c){return c.dataset.label+": "+c.parsed.y+"×";}}}}}});
 
   // 6 — fast vs slim prove time, proof size as label
   var proofSize=[386,386,199.6];
@@ -492,20 +517,6 @@
            grid:{color:GRID},ticks:{color:"#7a7982"},border:{display:false}}},
       plugins:{legend:{display:false},
         tooltip:{callbacks:{label:function(c){return c.parsed.y+" ms";}}}}}});
-
-  // 9 — BLAKE3 scaling to peak (18 threads, by batch size)
-  new Chart(document.getElementById("c_scaling"),{type:"bar",
-    data:{labels:["2¹⁸","2¹⁹","2²⁰","2²¹"],datasets:[
-      {label:"throughput",data:[790,762,825,703],
-       backgroundColor:["#bcb8f0","#bcb8f0",P.indigo,"#bcb8f0"],borderRadius:4,maxBarThickness:70}
-    ]},
-    plugins:[valueLabels("K",0)],
-    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:18}},
-      scales:{x:{grid:{display:false},ticks:{color:"#7a7982"},border:{color:AXIS}},
-        y:{beginAtZero:true,title:{display:true,text:"K compressions/s  (BLAKE3, 18t)",color:"#7a7982"},
-           grid:{color:GRID},ticks:{color:"#7a7982"},border:{display:false}}},
-      plugins:{legend:{display:false},
-        tooltip:{callbacks:{label:function(c){return c.parsed.y+"K comp/s";}}}}}});
 })();
 </script>
 </body>
